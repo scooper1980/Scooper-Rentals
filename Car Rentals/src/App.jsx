@@ -12,6 +12,7 @@ import Home from "./Pages/Home";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import Booking from "./Pages/Booking";
+import CustomerCare from "./Pages/CustomerCare";
 import "./App.css";
 
 function Shell() {
@@ -42,6 +43,9 @@ function Shell() {
               <Link to="/dashboard" className="nav-link">
                 Dashboard
               </Link>
+              <Link to="/customer-care" className="nav-link">
+                Customer Care
+              </Link>
               {user ? (
                 <>
                   <span className="user-chip">{user.email}</span>
@@ -65,6 +69,7 @@ function Shell() {
           <Route path="/login" element={<Login />} />
           <Route path="/booking/:carId" element={<Booking />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/customer-care" element={<CustomerCare />} />
         </Routes>
       </main>
 

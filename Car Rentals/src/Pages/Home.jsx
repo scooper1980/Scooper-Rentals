@@ -108,6 +108,10 @@ export default function Home() {
               ? `Signed in as ${user.email}`
               : "Please sign in to complete a booking."}
           </small>
+          <p className="contact-note">
+            Contact us via <strong>oluwaseyifapohunda@gmail.com</strong> or{" "}
+            <strong>07039971401</strong>
+          </p>
         </div>
       </section>
     </div>

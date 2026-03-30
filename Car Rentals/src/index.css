@@ -252,6 +252,12 @@ button {
   text-align: center;
 }
 
+.contact-note {
+  margin-top: 0.6rem;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
 .auth-card,
 .form-card,
 .booking-card {
@@ -359,6 +365,53 @@ button {
 .empty-card {
   padding: 1.5rem;
   text-align: center;
+}
+
+.support-card {
+  width: min(100%, 760px);
+  padding: 1.4rem;
+}
+
+.chat-window {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 340px;
+  overflow-y: auto;
+  margin: 1rem 0;
+  padding: 0.5rem;
+}
+
+.chat-bubble {
+  max-width: 85%;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  line-height: 1.5;
+}
+
+.agent-msg {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  justify-self: start;
+}
+
+.user-msg {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #111827;
+  justify-self: end;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.support-contact-box {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #dbeafe;
 }
 
 ::-webkit-scrollbar {
