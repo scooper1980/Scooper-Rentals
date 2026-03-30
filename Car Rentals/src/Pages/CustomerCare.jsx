@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-
-const VIDEO_URL =
-  "https://cdn.coverr.co/videos/coverr-yellow-lamborghini-driving-on-open-road-5171/1080p.mp4";
+import React, { useEffect, useState } from "react";
+import BackgroundVideo from "../components/BackgroundVideo";
+import { useAuth } from "../Context/AuthContext";
+import { api } from "../lib/api";
 
 const starterMessages = [
   {
@@ -17,34 +17,74 @@ const starterMessages = [
 ];
 
 export default function CustomerCare() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState(starterMessages);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  const sendMessage = (event) => {
+  useEffect(() => {
+    api
+      .getMessages()
+      .then((items) => {
+        const ownMessages = items
+          .filter((item) => !user?.email || item.email === user.email)
+          .slice(0, 6)
+          .reverse()
+          .map((item) => ({
+            id: item.id,
+            from: "user",
+            text: item.message,
+          }));
+
+        if (ownMessages.length) {
+          setMessages([...starterMessages, ...ownMessages]);
+        }
+      })
+      .catch(() => {
+        // keep starter messages if backend is unavailable
+      });
+  }, [user]);
+
+  const sendMessage = async (event) => {
     event.preventDefault();
     if (!input.trim()) return;
+
+    const messageText = input.trim();
+    setError("");
+    setSending(true);
 
     const userMessage = {
       id: Date.now(),
       from: "user",
-      text: input.trim(),
+      text: messageText,
     };
 
     const replyMessage = {
       id: Date.now() + 1,
       from: "agent",
-      text: "Thanks for reaching out. Our customer care team will respond shortly. You can also contact us directly via oluwaseyifapohunda@gmail.com or 07039971401.",
+      text: "Thanks for reaching out. Your message has been saved for the Scoopers Rentals team and they will respond shortly. You can also contact us via oluwaseyifapohunda@gmail.com or 07039971401.",
     };
 
-    setMessages((prev) => [...prev, userMessage, replyMessage]);
-    setInput("");
+    try {
+      await api.createMessage({
+        name: user?.email?.split("@")[0] || "Website visitor",
+        email: user?.email || "guest@scoopersrentals.com",
+        message: messageText,
+      });
+
+      setMessages((prev) => [...prev, userMessage, replyMessage]);
+      setInput("");
+    } catch (err) {
+      setError(err.message || "Unable to send your message right now.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="video-page">
-      <video className="bg-video" autoPlay muted loop playsInline>
-        <source src={VIDEO_URL} type="video/mp4" />
-      </video>
+      <BackgroundVideo />
       <div className="video-overlay" />
 
       <section className="center-panel">
@@ -75,10 +115,12 @@ export default function CustomerCare() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
             />
-            <button className="primary-btn" type="submit">
-              Send
+            <button className="primary-btn" type="submit" disabled={sending}>
+              {sending ? "Sending..." : "Send"}
             </button>
           </form>
+
+          {error && <p className="error-text">{error}</p>}
 
           <div className="support-contact-box">
             <p>

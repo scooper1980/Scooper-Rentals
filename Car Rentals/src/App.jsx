@@ -13,6 +13,7 @@ import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import Booking from "./Pages/Booking";
 import CustomerCare from "./Pages/CustomerCare";
+import Payment from "./Pages/Payment";
 import "./App.css";
 
 function Shell() {
@@ -68,6 +69,7 @@ function Shell() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/booking/:carId" element={<Booking />} />
+          <Route path="/payment/:bookingId" element={<Payment />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customer-care" element={<CustomerCare />} />
         </Routes>

@@ -2,9 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { carsData } from "../Data/Car";
 import { useAuth } from "../Context/AuthContext";
-
-const VIDEO_URL =
-  "https://cdn.coverr.co/videos/coverr-yellow-lamborghini-driving-on-open-road-5171/1080p.mp4";
+import BackgroundVideo from "../components/BackgroundVideo";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -28,9 +26,7 @@ export default function Home() {
 
   return (
     <div className="video-page">
-      <video className="bg-video" autoPlay muted loop playsInline>
-        <source src={VIDEO_URL} type="video/mp4" />
-      </video>
+      <BackgroundVideo />
       <div className="video-overlay" />
 
       <section className="page-panel home-panel">

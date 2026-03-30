@@ -1,10 +1,8 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
-
-const VIDEO_URL =
-  "https://cdn.coverr.co/videos/coverr-yellow-lamborghini-driving-on-open-road-5171/1080p.mp4";
-const STORAGE_KEY = "scoopers_bookings";
+import BackgroundVideo from "../components/BackgroundVideo";
+import { api } from "../lib/api";
 
 function getStatus(booking) {
   const today = new Date();
@@ -18,19 +16,57 @@ function getStatus(booking) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
-  const [bookings, setBookings] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem(STORAGE_KEY) ||
-          localStorage.getItem("bookings") ||
-          "[]",
-      );
-    } catch {
-      return [];
-    }
-  });
+  const [bookings, setBookings] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [paymentNotice, setPaymentNotice] = useState("");
+
+  const loadDashboardData = async () => {
+    const [bookingData, messageData] = await Promise.all([
+      api.getBookings(),
+      api.getMessages(),
+    ]);
+
+    setBookings(bookingData);
+    setMessages(messageData);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+
+    setLoading(true);
+    setError("");
+
+    loadDashboardData()
+      .catch((err) => setError(err.message || "Unable to load dashboard data."))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    const reference = new URLSearchParams(location.search).get("reference");
+    if (!reference || !user) return;
+
+    api
+      .verifyPaystack(reference)
+      .then((payment) => {
+        if (payment.status === "success") {
+          setPaymentNotice(
+            "Payment verified successfully. Your booking is now marked as paid.",
+          );
+        } else {
+          setPaymentNotice(`Payment status: ${payment.status}`);
+        }
+
+        return loadDashboardData();
+      })
+      .catch((err) => {
+        setError(err.message || "Unable to verify the payment.");
+      });
+  }, [location.search, user]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
@@ -43,12 +79,9 @@ export default function Dashboard() {
     0,
   );
 
-  const cancelBooking = (id) => {
-    const updated = bookings.filter((booking) => booking.id !== id);
-    setBookings(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    localStorage.setItem("bookings", JSON.stringify(updated));
-  };
+  const paidBookings = bookings.filter(
+    (booking) => booking.paymentStatus === "paid",
+  ).length;
 
   if (!user) {
     return (
@@ -72,16 +105,14 @@ export default function Dashboard() {
 
   return (
     <div className="video-page">
-      <video className="bg-video" autoPlay muted loop playsInline>
-        <source src={VIDEO_URL} type="video/mp4" />
-      </video>
+      <BackgroundVideo />
       <div className="video-overlay" />
 
       <section className="page-panel">
         <div className="glass-card dashboard-hero">
           <div>
-            <span className="eyebrow">Member dashboard</span>
-            <h1>Your reservations</h1>
+            <span className="eyebrow">Admin & Member Dashboard</span>
+            <h1>Live bookings and support activity</h1>
             <p className="helper-text">Welcome back, {user.email}</p>
           </div>
           <button className="primary-btn" onClick={() => navigate("/")}>
@@ -89,31 +120,24 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {paymentNotice && <p className="success-text">{paymentNotice}</p>}
+        {error && <p className="error-text">{error}</p>}
+
         <div className="stats-strip">
           <div className="glass-card stat-box">
             <span className="stat-label">Total Bookings</span>
             <span className="stat-value">{bookings.length}</span>
           </div>
           <div className="glass-card stat-box">
-            <span className="stat-label">Upcoming</span>
-            <span className="stat-value">
-              {
-                bookings.filter((booking) => getStatus(booking) === "upcoming")
-                  .length
-              }
-            </span>
+            <span className="stat-label">Paid Bookings</span>
+            <span className="stat-value">{paidBookings}</span>
           </div>
           <div className="glass-card stat-box">
-            <span className="stat-label">Active / Completed</span>
-            <span className="stat-value">
-              {
-                bookings.filter((booking) => getStatus(booking) !== "upcoming")
-                  .length
-              }
-            </span>
+            <span className="stat-label">Customer Messages</span>
+            <span className="stat-value">{messages.length}</span>
           </div>
           <div className="glass-card stat-box">
-            <span className="stat-label">Total Spent</span>
+            <span className="stat-label">Total Value</span>
             <span className="stat-value">${totalSpent}</span>
           </div>
         </div>
@@ -136,7 +160,11 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard-grid">
-          {filteredBookings.length === 0 ? (
+          {loading ? (
+            <div className="glass-card empty-card">
+              <h3>Loading dashboard...</h3>
+            </div>
+          ) : filteredBookings.length === 0 ? (
             <div className="glass-card empty-card">
               <h3>No bookings yet</h3>
               <p className="helper-text">
@@ -160,6 +188,10 @@ export default function Dashboard() {
 
                   <div className="info-list">
                     <div className="info-line">
+                      <span>Customer</span>
+                      <strong>{booking.customerEmail}</strong>
+                    </div>
+                    <div className="info-line">
                       <span>Dates</span>
                       <strong>
                         {booking.startDate} → {booking.endDate}
@@ -170,23 +202,56 @@ export default function Dashboard() {
                       <strong>{booking.days} day(s)</strong>
                     </div>
                     <div className="info-line">
+                      <span>Payment</span>
+                      <strong>{booking.paymentStatus || "pending"}</strong>
+                    </div>
+                    <div className="info-line">
                       <span>Total</span>
                       <strong>${booking.totalCost}</strong>
                     </div>
                   </div>
 
-                  {status === "upcoming" && (
+                  {booking.paymentStatus !== "paid" && (
                     <button
                       className="secondary-btn full-width"
-                      onClick={() => cancelBooking(booking.id)}
+                      onClick={() =>
+                        navigate(`/payment/${booking.id}`, {
+                          state: { booking },
+                        })
+                      }
                     >
-                      Cancel Booking
+                      Complete Payment
                     </button>
                   )}
                 </article>
               );
             })
           )}
+        </div>
+
+        <div
+          className="glass-card support-card"
+          style={{ marginTop: "1.5rem" }}
+        >
+          <span className="eyebrow">Customer Care Inbox</span>
+          <h2>Recent support messages</h2>
+          <div className="chat-window">
+            {messages.length === 0 ? (
+              <div className="chat-bubble agent-msg">
+                No customer messages yet.
+              </div>
+            ) : (
+              messages.slice(0, 8).map((message) => (
+                <div key={message.id} className="chat-bubble agent-msg">
+                  <strong>{message.name}</strong>
+                  <br />
+                  <span>{message.email}</span>
+                  <br />
+                  {message.message}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </section>
     </div>

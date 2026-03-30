@@ -49,7 +49,19 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
   z-index: 0;
+  filter: brightness(0.82) saturate(1.15);
+  transform: scale(1.03) translateZ(0);
+  pointer-events: none;
+  animation: cinematicFloat 18s ease-in-out infinite alternate;
+}
+
+.fallback-bg {
+  background:
+    linear-gradient(rgba(2, 6, 23, 0.28), rgba(2, 6, 23, 0.28)),
+    url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80")
+      center/cover no-repeat;
 }
 
 .video-overlay {
@@ -58,8 +70,8 @@ button {
   z-index: 1;
   background: linear-gradient(
     135deg,
-    rgba(2, 6, 23, 0.86),
-    rgba(15, 23, 42, 0.68)
+    rgba(2, 6, 23, 0.58),
+    rgba(15, 23, 42, 0.34)
   );
 }
 
@@ -461,5 +473,14 @@ select:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cinematicFloat {
+  from {
+    transform: scale(1.03) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(-1.5%, -1%, 0);
   }
 }

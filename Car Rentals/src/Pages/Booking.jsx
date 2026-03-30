@@ -2,10 +2,8 @@ import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getCarById } from "../Data/Car";
 import { useAuth } from "../Context/AuthContext";
-
-const VIDEO_URL =
-  "https://cdn.coverr.co/videos/coverr-yellow-lamborghini-driving-on-open-road-5171/1080p.mp4";
-const STORAGE_KEY = "scoopers_bookings";
+import BackgroundVideo from "../components/BackgroundVideo";
+import { api } from "../lib/api";
 
 export default function Booking() {
   const { carId } = useParams();
@@ -55,33 +53,27 @@ export default function Booking() {
       return;
     }
 
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      setLoading(true);
 
-    const booking = {
-      id: Date.now(),
-      car,
-      fullName,
-      phone,
-      startDate,
-      endDate,
-      insurance,
-      totalCost,
-      days,
-    };
+      const booking = await api.createBooking({
+        customerEmail: user.email,
+        car,
+        fullName,
+        phone,
+        startDate,
+        endDate,
+        insurance,
+        totalCost,
+        days,
+      });
 
-    const existing = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ||
-        localStorage.getItem("bookings") ||
-        "[]",
-    );
-
-    const updated = [booking, ...existing];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    localStorage.setItem("bookings", JSON.stringify(updated));
-
-    setLoading(false);
-    navigate("/dashboard");
+      navigate(`/payment/${booking.id}`, { state: { booking } });
+    } catch (err) {
+      setError(err.message || "Unable to save booking.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!car) {
@@ -105,9 +97,7 @@ export default function Booking() {
 
   return (
     <div className="video-page">
-      <video className="bg-video" autoPlay muted loop playsInline>
-        <source src={VIDEO_URL} type="video/mp4" />
-      </video>
+      <BackgroundVideo />
       <div className="video-overlay" />
 
       <section className="page-panel booking-layout">
@@ -144,7 +134,8 @@ export default function Booking() {
           <span className="eyebrow">Reserve this ride</span>
           <h2>Complete your booking</h2>
           <p className="form-note">
-            A smooth, premium reservation in under a minute.
+            Your reservation will be saved to the live dashboard and sent to
+            payment.
           </p>
 
           <form className="stack-form" onSubmit={handleSubmit}>
@@ -193,7 +184,7 @@ export default function Booking() {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Saving booking..." : "Confirm Booking"}
+              {loading ? "Saving booking..." : "Continue to Payment"}
             </button>
             <button
               className="secondary-btn full-width"
