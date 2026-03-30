@@ -1,0 +1,8 @@
+node_modules/
+Car Rentals/node_modules/
+dist/
+Car Rentals/dist/
+.vscode/
+*.log
+.env
+.env.*
