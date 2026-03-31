@@ -303,6 +303,12 @@ app.get("/api/payments/paystack/verify/:reference", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Scoopers Rentals API running on http://localhost:${PORT}`);
-});
+const isDirectRun = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  app.listen(PORT, () => {
+    console.log(`Scoopers Rentals API running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix \"Car Rentals\" run dev",
+    "build": "npm --prefix \"Car Rentals\" run build",
+    "preview": "npm --prefix \"Car Rentals\" run preview"
+  },
+  "dependencies": {
+    "react-router-dom": "^7.13.2"
+  }
+}
