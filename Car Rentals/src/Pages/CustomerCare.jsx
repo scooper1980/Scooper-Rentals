@@ -23,27 +23,37 @@ export default function CustomerCare() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    api
-      .getMessages()
-      .then((items) => {
-        const ownMessages = items
-          .filter((item) => !user?.email || item.email === user.email)
-          .slice(0, 6)
-          .reverse()
-          .map((item) => ({
-            id: item.id,
-            from: "user",
-            text: item.message,
-          }));
+  const loadMessages = async () => {
+    const items = await api.getMessages();
+    const ownMessages = items
+      .filter((item) => !user?.email || item.email === user.email)
+      .slice()
+      .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0))
+      .map((item) => ({
+        id: item.id,
+        from: item.from || "user",
+        text: item.message,
+      }));
 
-        if (ownMessages.length) {
-          setMessages([...starterMessages, ...ownMessages]);
-        }
-      })
-      .catch(() => {
-        // keep starter messages if backend is unavailable
-      });
+    setMessages(
+      ownMessages.length
+        ? [...starterMessages, ...ownMessages]
+        : starterMessages,
+    );
+  };
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    loadMessages().catch(() => {
+      // keep starter messages if backend is unavailable
+    });
+
+    const interval = setInterval(() => {
+      loadMessages().catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   const sendMessage = async (event) => {
@@ -54,27 +64,17 @@ export default function CustomerCare() {
     setError("");
     setSending(true);
 
-    const userMessage = {
-      id: Date.now(),
-      from: "user",
-      text: messageText,
-    };
-
-    const replyMessage = {
-      id: Date.now() + 1,
-      from: "agent",
-      text: "Thanks for reaching out. Your message has been saved for the Scoopers Rentals team and they will respond shortly. You can also contact us via oluwaseyifapohunda@gmail.com or 07039971401.",
-    };
-
     try {
       await api.createMessage({
         name: user?.email?.split("@")[0] || "Website visitor",
         email: user?.email || "guest@scoopersrentals.com",
+        from: "user",
+        type: "support",
         message: messageText,
       });
 
-      setMessages((prev) => [...prev, userMessage, replyMessage]);
       setInput("");
+      await loadMessages();
     } catch (err) {
       setError(err.message || "Unable to send your message right now.");
     } finally {

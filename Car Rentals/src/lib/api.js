@@ -40,4 +40,14 @@ export const api = {
     }),
   verifyPaystack: (reference) =>
     request(`/payments/paystack/verify/${reference}`),
+  updatePaymentStatus: (bookingId, paymentStatus) =>
+    request(`/bookings/${bookingId}/payment-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ paymentStatus }),
+    }),
+  updateBookingStatus: (bookingId, status) =>
+    request(`/bookings/${bookingId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
 };

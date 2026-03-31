@@ -16,6 +16,8 @@ export default function Payment() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     api
@@ -45,6 +47,7 @@ export default function Payment() {
 
     setLoading(true);
     setError("");
+    setNotice("");
 
     try {
       const response = await api.initializePaystack({
@@ -63,6 +66,30 @@ export default function Payment() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTransferNotice = async () => {
+    if (!booking) return;
+
+    setNotifying(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await api.createMessage({
+        name: booking.fullName,
+        email: user?.email || "guest@scoopersrentals.com",
+        message: `Bank transfer sent for booking ${booking.id} (${booking.car?.name}). Please confirm payment of $${amount}.`,
+      });
+
+      setNotice(
+        "Your payment notice has been sent to Scoopers Rentals. The company will verify the transfer and approve your booking once confirmed.",
+      );
+    } catch (err) {
+      setError(err.message || "Unable to notify the receiver right now.");
+    } finally {
+      setNotifying(false);
     }
   };
 
@@ -99,8 +126,8 @@ export default function Payment() {
           <span className="eyebrow">Secure Payment</span>
           <h1>Pay for your reservation</h1>
           <p className="helper-text">
-            We recommend <strong>Paystack</strong> for secure card, bank and
-            transfer payments.
+            You can pay securely with <strong>Paystack</strong> or use the
+            direct <strong>bank transfer</strong> option below.
           </p>
 
           <div className="info-list">
@@ -124,9 +151,53 @@ export default function Payment() {
             </div>
           </div>
 
+          <div
+            className="info-list"
+            style={{
+              marginTop: "1rem",
+              paddingTop: "1rem",
+              borderTop: "1px solid rgba(255,255,255,0.14)",
+            }}
+          >
+            <div className="info-line">
+              <span>Bank Transfer Option</span>
+              <strong>Available</strong>
+            </div>
+            <div className="info-line">
+              <span>Bank</span>
+              <strong>Guaranty Trust Bank (GTBank)</strong>
+            </div>
+            <div className="info-line">
+              <span>Account Number</span>
+              <strong>0685937791</strong>
+            </div>
+          </div>
+
+          <div
+            className="support-contact-box"
+            style={{ marginTop: "1rem", textAlign: "left" }}
+          >
+            <p>
+              <strong>How payment approval works:</strong>
+            </p>
+            <p>1. Make the transfer to the account above.</p>
+            <p>
+              2. Send your payment proof through <strong>Customer Care</strong>.
+            </p>
+            <p>
+              3. Scoopers Rentals will confirm the transfer and approve your
+              booking manually.
+            </p>
+            <p>
+              4. Once confirmed, the company updates your reservation as{" "}
+              <strong>paid/approved</strong>.
+            </p>
+          </div>
+
           <p className="helper-text" style={{ marginTop: "1rem" }}>
             {config.message}
           </p>
+          {notice && <p className="success-text">{notice}</p>}
           {error && <p className="error-text">{error}</p>}
 
           <div className="stack-form">
@@ -137,6 +208,14 @@ export default function Payment() {
               onClick={handlePaystack}
             >
               {loading ? "Opening Paystack..." : "Pay with Paystack"}
+            </button>
+            <button
+              className="secondary-btn full-width"
+              type="button"
+              disabled={notifying}
+              onClick={handleTransferNotice}
+            >
+              {notifying ? "Sending notice..." : "I've sent the money"}
             </button>
             <button
               className="secondary-btn full-width"

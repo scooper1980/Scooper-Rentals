@@ -276,8 +276,40 @@ button {
   padding: 1.25rem;
 }
 
+.auth-shell {
+  position: relative;
+  width: min(100%, 470px);
+}
+
 .auth-card {
   width: min(100%, 470px);
+}
+
+.admin-menu-wrap {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  z-index: 4;
+}
+
+.admin-dot-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.84);
+  color: #fff;
+  font-size: 1.35rem;
+}
+
+.admin-menu-panel {
+  margin-top: 0.4rem;
+  min-width: 160px;
+  padding: 0.5rem;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
 }
 
 .stack-form {

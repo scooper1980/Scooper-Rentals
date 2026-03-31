@@ -5,6 +5,8 @@ import BackgroundVideo from "../components/BackgroundVideo";
 import { api } from "../lib/api";
 
 function getStatus(booking) {
+  if (booking.status) return booking.status;
+
   const today = new Date();
   const start = new Date(booking.startDate);
   const end = new Date(booking.endDate);
@@ -17,7 +19,7 @@ function getStatus(booking) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [filter, setFilter] = useState("all");
   const [bookings, setBookings] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -31,12 +33,20 @@ export default function Dashboard() {
       api.getMessages(),
     ]);
 
-    setBookings(bookingData);
-    setMessages(messageData);
+    const visibleBookings = isAdmin
+      ? bookingData
+      : bookingData.filter((item) => item.customerEmail === user?.email);
+
+    const visibleMessages = isAdmin
+      ? messageData
+      : messageData.filter((item) => item.email === user?.email);
+
+    setBookings(visibleBookings);
+    setMessages(visibleMessages);
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
 
     setLoading(true);
     setError("");
@@ -44,7 +54,13 @@ export default function Dashboard() {
     loadDashboardData()
       .catch((err) => setError(err.message || "Unable to load dashboard data."))
       .finally(() => setLoading(false));
-  }, [user]);
+
+    const interval = setInterval(() => {
+      loadDashboardData().catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     const reference = new URLSearchParams(location.search).get("reference");
@@ -200,6 +216,10 @@ export default function Dashboard() {
                     <div className="info-line">
                       <span>Duration</span>
                       <strong>{booking.days} day(s)</strong>
+                    </div>
+                    <div className="info-line">
+                      <span>Order Status</span>
+                      <strong>{status}</strong>
                     </div>
                     <div className="info-line">
                       <span>Payment</span>

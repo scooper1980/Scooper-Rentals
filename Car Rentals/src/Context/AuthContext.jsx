@@ -11,7 +11,8 @@ export function AuthProvider({ children }) {
     try {
       const savedUser = localStorage.getItem(STORAGE_KEY);
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser({ role: "member", name: "", ...parsed });
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -20,8 +21,8 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = (email) => {
-    const nextUser = { email };
+  const login = (email, role = "member", name = "") => {
+    const nextUser = { email, role, name };
     setUser(nextUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
   };
@@ -31,8 +32,10 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const isAdmin = user?.role === "admin";
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

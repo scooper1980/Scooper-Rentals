@@ -109,8 +109,72 @@ app.patch("/api/bookings/:id/payment-status", async (req, res) => {
     return res.status(404).json({ message: "Booking not found." });
   }
 
+  const previousPaymentStatus = booking.paymentStatus;
   booking.paymentStatus = paymentStatus || booking.paymentStatus;
+
+  if (booking.paymentStatus === "paid") {
+    booking.status = "active";
+    booking.approvedAt = new Date().toISOString();
+  }
+
   await writeCollection(bookingsFile, bookings);
+
+  if (previousPaymentStatus !== "paid" && booking.paymentStatus === "paid") {
+    const messages = await readCollection(messagesFile);
+    messages.unshift({
+      id: `${Date.now()}-approval`,
+      name: "Scoopers Rentals",
+      email: booking.customerEmail,
+      from: "agent",
+      type: "payment-approval",
+      message: `Hello ${booking.fullName}, your payment for ${booking.car?.name || "your booking"} has been approved. Your order is now active and your reservation is confirmed by Scoopers Rentals.`,
+      createdAt: new Date().toISOString(),
+    });
+    await writeCollection(messagesFile, messages);
+  }
+
+  res.json(booking);
+});
+
+app.patch("/api/bookings/:id/status", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const allowedStatuses = ["upcoming", "active", "completed"];
+
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid booking status." });
+  }
+
+  const bookings = await readCollection(bookingsFile);
+  const booking = bookings.find((item) => item.id === id);
+
+  if (!booking) {
+    return res.status(404).json({ message: "Booking not found." });
+  }
+
+  const previousStatus = booking.status;
+  booking.status = status;
+
+  if (status === "completed") {
+    booking.completedAt = new Date().toISOString();
+  }
+
+  await writeCollection(bookingsFile, bookings);
+
+  if (previousStatus !== status && status === "completed") {
+    const messages = await readCollection(messagesFile);
+    messages.unshift({
+      id: `${Date.now()}-completed`,
+      name: "Scoopers Rentals",
+      email: booking.customerEmail,
+      from: "agent",
+      type: "booking-completed",
+      message: `Hello ${booking.fullName}, your ${booking.car?.name || "booking"} order has been marked as completed. Thank you for choosing Scoopers Rentals.`,
+      createdAt: new Date().toISOString(),
+    });
+    await writeCollection(messagesFile, messages);
+  }
+
   res.json(booking);
 });
 
@@ -120,7 +184,7 @@ app.get("/api/messages", async (_req, res) => {
 });
 
 app.post("/api/messages", async (req, res) => {
-  const { name, email, message } = req.body;
+  const { name, email, message, from, type } = req.body;
 
   if (!message) {
     return res.status(400).json({ message: "Message is required." });
@@ -131,6 +195,8 @@ app.post("/api/messages", async (req, res) => {
     id: Date.now().toString(),
     name: name || "Website visitor",
     email: email || "not-provided@scoopersrentals.com",
+    from: from || "user",
+    type: type || "general",
     message,
     createdAt: new Date().toISOString(),
   };
@@ -207,8 +273,25 @@ app.get("/api/payments/paystack/verify/:reference", async (req, res) => {
       const bookings = await readCollection(bookingsFile);
       const booking = bookings.find((item) => item.id === bookingId);
       if (booking && payment.status === "success") {
+        const wasPaid = booking.paymentStatus === "paid";
         booking.paymentStatus = "paid";
+        booking.status = "active";
+        booking.approvedAt = new Date().toISOString();
         await writeCollection(bookingsFile, bookings);
+
+        if (!wasPaid) {
+          const messages = await readCollection(messagesFile);
+          messages.unshift({
+            id: `${Date.now()}-paystack-approval`,
+            name: "Scoopers Rentals",
+            email: booking.customerEmail,
+            from: "agent",
+            type: "payment-approval",
+            message: `Hello ${booking.fullName}, your payment for ${booking.car?.name || "your booking"} has been confirmed. Your order is now active.`,
+            createdAt: new Date().toISOString(),
+          });
+          await writeCollection(messagesFile, messages);
+        }
       }
     }
 

@@ -10,10 +10,12 @@ import {
 import { AuthProvider, useAuth } from "./Context/AuthContext";
 import Home from "./Pages/Home";
 import Login from "./Pages/Login";
+import AdminLogin from "./Pages/AdminLogin";
 import Dashboard from "./Pages/Dashboard";
 import Booking from "./Pages/Booking";
 import CustomerCare from "./Pages/CustomerCare";
 import Payment from "./Pages/Payment";
+import AdminOrders from "./Pages/AdminOrders";
 import "./App.css";
 
 function Shell() {
@@ -21,7 +23,7 @@ function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const hideChrome = location.pathname === "/login";
+  const hideChrome = ["/login", "/admin-login"].includes(location.pathname);
 
   const handleLogout = () => {
     logout();
@@ -47,6 +49,11 @@ function Shell() {
               <Link to="/customer-care" className="nav-link">
                 Customer Care
               </Link>
+              {user?.role === "admin" && (
+                <Link to="/admin-orders" className="nav-link">
+                  Admin Orders
+                </Link>
+              )}
               {user ? (
                 <>
                   <span className="user-chip">{user.email}</span>
@@ -68,10 +75,12 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/booking/:carId" element={<Booking />} />
           <Route path="/payment/:bookingId" element={<Payment />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customer-care" element={<CustomerCare />} />
+          <Route path="/admin-orders" element={<AdminOrders />} />
         </Routes>
       </main>
 
