@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackgroundVideo from "../components/BackgroundVideo";
 import { useAuth } from "../Context/AuthContext";
-
-const ADMIN_STORAGE_KEY = "scoopers_admin_staff_accounts";
-const STAFF_PASSCODE = "1980";
+import { api } from "../lib/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -17,14 +15,6 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const readAdmins = () => {
-    try {
-      return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || "[]");
-    } catch {
-      return [];
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -34,51 +24,30 @@ export default function AdminLogin() {
       return;
     }
 
-    if (passcode !== STAFF_PASSCODE) {
-      setError("Invalid staff passcode. Use 1980.");
-      return;
-    }
+    try {
+      setLoading(true);
 
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 350));
+      const staffMember =
+        mode === "signup"
+          ? await api.registerAdminStaff({
+              name,
+              email,
+              password,
+              passcode,
+            })
+          : await api.loginAdminStaff({
+              email,
+              password,
+              passcode,
+            });
 
-    const admins = readAdmins();
-
-    if (mode === "signup") {
-      const existing = admins.find(
-        (item) => item.email.toLowerCase() === email.toLowerCase(),
-      );
-
-      if (existing) {
-        setLoading(false);
-        setError("This admin email already exists. Please login instead.");
-        return;
-      }
-
-      const newAdmin = { name, email, password };
-      localStorage.setItem(
-        ADMIN_STORAGE_KEY,
-        JSON.stringify([newAdmin, ...admins]),
-      );
-      login(email, "admin", name);
+      login(staffMember.email, "admin", staffMember.name || name);
       navigate("/admin-orders");
-      return;
-    }
-
-    const admin = admins.find(
-      (item) =>
-        item.email.toLowerCase() === email.toLowerCase() &&
-        item.password === password,
-    );
-
-    if (!admin) {
+    } catch (err) {
+      setError(err.message || "Unable to complete admin login.");
+    } finally {
       setLoading(false);
-      setError("Admin account not found. Please sign up first.");
-      return;
     }
-
-    login(admin.email, "admin", admin.name);
-    navigate("/admin-orders");
   };
 
   return (

@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
-import { kv } from "@vercel/kv";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,11 +15,48 @@ const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "data");
 const bookingsFile = path.join(dataDir, "bookings.json");
 const messagesFile = path.join(dataDir, "messages.json");
+const staffFile = path.join(dataDir, "admin-staff.json");
 const BOOKINGS_KEY = "scoopers:bookings";
 const MESSAGES_KEY = "scoopers:messages";
-const USE_KV_STORAGE = Boolean(
-  process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN,
-);
+const STAFF_KEY = "scoopers:admin-staff";
+const ADMIN_STAFF_PASSCODE = process.env.ADMIN_STAFF_PASSCODE || "1980";
+const IS_VERCEL = Boolean(process.env.VERCEL);
+const STORAGE_URL =
+  process.env.KV_REST_API_URL ||
+  process.env.KV_URL ||
+  process.env.STORAGE_REST_API_URL ||
+  process.env.STORAGE_URL ||
+  process.env.UPSTASH_REDIS_REST_URL;
+const STORAGE_TOKEN =
+  process.env.KV_REST_API_TOKEN ||
+  process.env.STORAGE_REST_API_TOKEN ||
+  process.env.STORAGE_TOKEN ||
+  process.env.UPSTASH_REDIS_REST_TOKEN;
+const USE_KV_STORAGE = Boolean(STORAGE_URL && STORAGE_TOKEN);
+let storageMode = IS_VERCEL ? "memory-fallback" : "local-json";
+let kvStore = null;
+
+if (USE_KV_STORAGE) {
+  try {
+    const { createClient } = await import("@vercel/kv");
+    kvStore = createClient({
+      url: STORAGE_URL,
+      token: STORAGE_TOKEN,
+    });
+    storageMode = "vercel-kv";
+  } catch (error) {
+    console.warn(
+      "KV storage unavailable, using fallback storage instead.",
+      error?.message || error,
+    );
+  }
+}
+
+const memoryStore = new Map([
+  [BOOKINGS_KEY, []],
+  [MESSAGES_KEY, []],
+  [STAFF_KEY, []],
+]);
 
 app.use(cors());
 app.use(express.json());
@@ -35,19 +71,55 @@ async function ensureFile(filePath) {
 }
 
 async function readCollection(storageKey, filePath) {
-  if (USE_KV_STORAGE) {
-    const data = await kv.get(storageKey);
-    return Array.isArray(data) ? data : [];
+  if (kvStore) {
+    try {
+      const data = await kvStore.get(storageKey);
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.warn(
+        `KV read failed for ${storageKey}. Falling back to ${IS_VERCEL ? "memory" : "local"} storage.`,
+        error?.message || error,
+      );
+      kvStore = null;
+      storageMode = IS_VERCEL ? "memory-fallback" : "local-json";
+    }
   }
 
-  await ensureFile(filePath);
-  const raw = await fs.readFile(filePath, "utf8");
-  return JSON.parse(raw || "[]");
+  if (IS_VERCEL) {
+    return memoryStore.get(storageKey) || [];
+  }
+
+  try {
+    await ensureFile(filePath);
+    const raw = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn(
+      `Local read failed for ${storageKey}. Returning an empty collection.`,
+      error?.message || error,
+    );
+    return [];
+  }
 }
 
 async function writeCollection(storageKey, filePath, data) {
-  if (USE_KV_STORAGE) {
-    await kv.set(storageKey, data);
+  if (kvStore) {
+    try {
+      await kvStore.set(storageKey, data);
+      return;
+    } catch (error) {
+      console.warn(
+        `KV write failed for ${storageKey}. Falling back to ${IS_VERCEL ? "memory" : "local"} storage.`,
+        error?.message || error,
+      );
+      kvStore = null;
+      storageMode = IS_VERCEL ? "memory-fallback" : "local-json";
+    }
+  }
+
+  if (IS_VERCEL) {
+    memoryStore.set(storageKey, data);
     return;
   }
 
@@ -59,7 +131,7 @@ app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "Scoopers Rentals API",
-    storage: USE_KV_STORAGE ? "vercel-kv" : "local-json",
+    storage: storageMode,
   });
 });
 
@@ -196,6 +268,79 @@ app.patch("/api/bookings/:id/status", async (req, res) => {
   }
 
   res.json(booking);
+});
+
+app.post("/api/admin-staff/register", async (req, res) => {
+  const { name, email, password, passcode } = req.body;
+
+  if (!name || !email || !password || !passcode) {
+    return res
+      .status(400)
+      .json({ message: "Please complete all admin fields." });
+  }
+
+  if (passcode !== ADMIN_STAFF_PASSCODE) {
+    return res.status(401).json({ message: "Invalid staff passcode." });
+  }
+
+  const staffAccounts = await readCollection(STAFF_KEY, staffFile);
+  const existing = staffAccounts.find(
+    (item) => item.email.toLowerCase() === email.toLowerCase(),
+  );
+
+  if (existing) {
+    return res.status(409).json({
+      message: "This admin email already exists. Please login instead.",
+    });
+  }
+
+  const staffMember = {
+    id: Date.now().toString(),
+    name,
+    email: email.toLowerCase(),
+    password,
+    createdAt: new Date().toISOString(),
+  };
+
+  staffAccounts.unshift(staffMember);
+  await writeCollection(STAFF_KEY, staffFile, staffAccounts);
+
+  res.status(201).json({
+    id: staffMember.id,
+    name: staffMember.name,
+    email: staffMember.email,
+  });
+});
+
+app.post("/api/admin-staff/login", async (req, res) => {
+  const { email, password, passcode } = req.body;
+
+  if (!email || !password || !passcode) {
+    return res
+      .status(400)
+      .json({ message: "Please complete all admin fields." });
+  }
+
+  if (passcode !== ADMIN_STAFF_PASSCODE) {
+    return res.status(401).json({ message: "Invalid staff passcode." });
+  }
+
+  const staffAccounts = await readCollection(STAFF_KEY, staffFile);
+  const staffMember = staffAccounts.find(
+    (item) =>
+      item.email.toLowerCase() === email.toLowerCase() &&
+      item.password === password,
+  );
+
+  if (!staffMember) {
+    return res.status(401).json({ message: "Invalid admin login details." });
+  }
+
+  res.json({
+    id: staffMember.id,
+    name: staffMember.name,
+    email: staffMember.email,
+  });
 });
 
 app.get("/api/messages", async (_req, res) => {

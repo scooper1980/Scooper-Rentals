@@ -1,11 +1,17 @@
 {
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "npm --prefix \"Car Rentals\" run dev",
     "build": "npm --prefix \"Car Rentals\" run build",
     "preview": "npm --prefix \"Car Rentals\" run preview"
   },
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
+    "axios": "^1.14.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
     "react-router-dom": "^7.13.2"
   }
 }
