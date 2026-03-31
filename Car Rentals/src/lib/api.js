@@ -11,10 +11,20 @@ async function request(path, options = {}) {
     ...options,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson
+    ? await response.json().catch(() => ({}))
+    : await response.text().catch(() => "");
 
   if (!response.ok) {
-    throw new Error(data.message || "Request failed");
+    throw new Error((isJson && data.message) || "Request failed");
+  }
+
+  if (!isJson) {
+    throw new Error(
+      "Unexpected server response. Please refresh and try again.",
+    );
   }
 
   return data;

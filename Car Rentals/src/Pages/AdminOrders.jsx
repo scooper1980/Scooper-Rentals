@@ -23,8 +23,8 @@ export default function AdminOrders() {
       api.getMessages(),
     ]);
 
-    setBookings(bookingData);
-    setMessages(messageData);
+    setBookings(Array.isArray(bookingData) ? bookingData : []);
+    setMessages(Array.isArray(messageData) ? messageData : []);
   };
 
   useEffect(() => {
