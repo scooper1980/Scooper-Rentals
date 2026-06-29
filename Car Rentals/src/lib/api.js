@@ -1,43 +1,72 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 async function request(path, options = {}) {
-  let response;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const candidates = [];
 
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
-      ...options,
-    });
-  } catch {
-    throw new Error(
-      "Unable to reach the server right now. Please try again in a moment.",
-    );
+  if (API_BASE) {
+    candidates.push(`${API_BASE}${normalizedPath}`);
+  }
+  candidates.push(normalizedPath);
+  if (API_BASE === "/api") {
+    candidates.push(normalizedPath.replace(/^\/api/, "") || "/");
   }
 
-  const contentType = response.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  const data = isJson
-    ? await response.json().catch(() => ({}))
-    : await response.text().catch(() => "");
+  let lastError;
 
-  if (!response.ok) {
-    const message =
+  for (const url of candidates) {
+    let response;
+
+    try {
+      response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    const data = isJson
+      ? await response.json().catch(() => ({}))
+      : await response.text().catch(() => "");
+
+    if (response.ok) {
+      if (!isJson) {
+        throw new Error(
+          "Unexpected server response. Please refresh and try again.",
+        );
+      }
+      return data;
+    }
+
+    if (response.status !== 404 && response.status !== 405) {
+      const message =
+        (isJson && data.message) ||
+        (typeof data === "string" && data.trim()) ||
+        "Request failed";
+      throw new Error(message);
+    }
+
+    lastError = new Error(
       (isJson && data.message) ||
-      (typeof data === "string" && data.trim()) ||
-      "Request failed";
-    throw new Error(message);
-  }
-
-  if (!isJson) {
-    throw new Error(
-      "Unexpected server response. Please refresh and try again.",
+        (typeof data === "string" && data.trim()) ||
+        "Request failed",
     );
   }
 
-  return data;
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(
+    "Unable to reach the server right now. Please try again in a moment.",
+  );
 }
 
 export const api = {
