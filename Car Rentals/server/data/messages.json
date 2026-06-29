@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "1774965466743",
+    "name": "Deploy Test",
+    "email": "deploy@example.com",
+    "from": "user",
+    "type": "general",
+    "message": "production-style route check",
+    "createdAt": "2026-03-31T13:57:46.743Z"
+  },
+  {
+    "id": "1774888090923",
+    "name": "oluwaseyi",
+    "email": "guest@scoopersrentals.com",
+    "message": "Bank transfer sent for booking 1774886900616 (Toyota Camry). Please confirm payment of $500.",
+    "createdAt": "2026-03-30T16:28:10.923Z"
+  },
+  {
+    "id": "1774887935117",
+    "name": "guest",
+    "email": "guest@scoopersrentals.com",
+    "message": "hi",
+    "createdAt": "2026-03-30T16:25:35.117Z"
+  },
+  {
+    "id": "1774887575502",
+    "name": "oluwaseyi",
+    "email": "guest@scoopersrentals.com",
+    "message": "Bank transfer sent for booking 1774886900616 (Toyota Camry). Please confirm payment of $500.",
+    "createdAt": "2026-03-30T16:19:35.502Z"
+  }
+]

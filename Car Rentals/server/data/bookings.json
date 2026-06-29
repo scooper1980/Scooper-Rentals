@@ -1,1 +1,78 @@
-[]
+[
+  {
+    "id": "1774965488646",
+    "customerEmail": "deploy@example.com",
+    "fullName": "Deploy Test",
+    "phone": "07000000000",
+    "startDate": "2026-04-02",
+    "endDate": "2026-04-03",
+    "insurance": false,
+    "totalCost": 0,
+    "days": 0,
+    "car": {
+      "id": "test",
+      "name": "Deploy Route"
+    },
+    "status": "upcoming",
+    "paymentStatus": "pending",
+    "createdAt": "2026-03-31T13:58:08.647Z"
+  },
+  {
+    "id": "1774886900616",
+    "customerEmail": "guest@scoopersrentals.com",
+    "fullName": "oluwaseyi",
+    "phone": "09076931266",
+    "startDate": "2026-03-31",
+    "endDate": "2026-04-04",
+    "insurance": true,
+    "totalCost": 500,
+    "days": 5,
+    "car": {
+      "id": 1,
+      "name": "Toyota Camry",
+      "description": "Comfortable and reliable sedan for daily commute",
+      "price": 80,
+      "pricePerDay": 80,
+      "location": "Lekki",
+      "category": "Sedan",
+      "seats": 5,
+      "transmission": "Automatic",
+      "fuelType": "Petrol",
+      "image": "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=600&h=400&fit=crop",
+      "rating": 4.5,
+      "reviews": 128
+    },
+    "status": "upcoming",
+    "paymentStatus": "paid",
+    "createdAt": "2026-03-30T16:08:20.616Z"
+  },
+  {
+    "id": "1774886202548",
+    "customerEmail": "guest@scoopersrentals.com",
+    "fullName": "scooper",
+    "phone": "09076931266",
+    "startDate": "2026-03-31",
+    "endDate": "2026-04-20",
+    "insurance": true,
+    "totalCost": 1890,
+    "days": 21,
+    "car": {
+      "id": 3,
+      "name": "Honda Civic",
+      "description": "Sporty and fuel-efficient compact car",
+      "price": 70,
+      "pricePerDay": 70,
+      "location": "Ikeja",
+      "category": "Compact",
+      "seats": 5,
+      "transmission": "Manual",
+      "fuelType": "Petrol",
+      "image": "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=600&h=400&fit=crop",
+      "rating": 4.3,
+      "reviews": 156
+    },
+    "status": "upcoming",
+    "paymentStatus": "paid",
+    "createdAt": "2026-03-30T15:56:42.548Z"
+  }
+]

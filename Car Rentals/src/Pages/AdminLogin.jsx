@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BackgroundVideo from "../components/BackgroundVideo";
 import { useAuth } from "../Context/AuthContext";
+import BackgroundVideo from "../components/BackgroundVideo";
 import { api } from "../lib/api";
 
 export default function AdminLogin() {
@@ -19,32 +19,39 @@ export default function AdminLogin() {
     event.preventDefault();
     setError("");
 
-    if (!email || !password || !passcode || (mode === "signup" && !name)) {
+    if (!email || !password || !passcode) {
       setError("Please complete all admin fields.");
       return;
     }
 
+    if (mode === "signup" && !name) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setLoading(true);
-
-      const staffMember =
-        mode === "signup"
-          ? await api.registerAdminStaff({
-              name,
-              email,
-              password,
-              passcode,
-            })
-          : await api.loginAdminStaff({
-              email,
-              password,
-              passcode,
-            });
-
-      login(staffMember.email, "admin", staffMember.name || name);
-      navigate("/admin-orders");
+      if (mode === "signup") {
+        const response = await api.registerAdminStaff({
+          name,
+          email,
+          password,
+          passcode,
+        });
+        login(response.email, "admin", response.name);
+        navigate("/admin-orders");
+      } else {
+        const response = await api.loginAdminStaff({
+          email,
+          password,
+          passcode,
+        });
+        login(response.email, "admin", response.name);
+        navigate("/admin-orders");
+      }
     } catch (err) {
-      setError(err.message || "Unable to complete admin login.");
+      setError(err.message || "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -58,81 +65,87 @@ export default function AdminLogin() {
       <section className="center-panel">
         <div className="glass-card auth-card">
           <span className="eyebrow">Admin staff access</span>
-          <h1>{mode === "login" ? "Admin login" : "Admin sign up"}</h1>
+          <h1>Admin login</h1>
           <p className="helper-text">
             This page is for Scoopers Rentals staff only. Use the shared staff
             passcode to continue.
           </p>
 
-          <div className="hero-tools" style={{ marginTop: "0.5rem" }}>
-            <button
-              type="button"
-              className={mode === "login" ? "primary-btn" : "secondary-btn"}
-              onClick={() => setMode("login")}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={mode === "signup" ? "primary-btn" : "secondary-btn"}
-              onClick={() => setMode("signup")}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          <form className="stack-form" onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="stack-form">
             {mode === "signup" && (
               <input
                 className="classic-input"
                 type="text"
+                placeholder="Your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Admin full name"
               />
             )}
 
             <input
               className="classic-input"
               type="email"
+              placeholder="Staff email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Admin email"
             />
+
             <input
               className="classic-input"
               type="password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
             />
+
             <input
               className="classic-input"
               type="password"
+              placeholder="Staff passcode"
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
-              placeholder="Staff passcode"
             />
 
             {error && <p className="error-text">{error}</p>}
 
-            <button
-              className="primary-btn full-width"
-              type="submit"
-              disabled={loading}
-            >
-              {loading
-                ? mode === "login"
-                  ? "Signing in..."
-                  : "Creating admin account..."
-                : mode === "login"
-                  ? "Admin Login"
-                  : "Create Admin Account"}
+            <button type="submit" className="primary-btn full-width" disabled={loading}>
+              {loading ? (mode === "signup" ? "Registering..." : "Logging in...") : mode === "login" ? "Login" : "Sign Up"}
             </button>
+
+            <div className="help-text-row">
+              {mode === "login" ? (
+                <>
+                  <p>No account yet?</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => {
+                      setMode("signup");
+                      setError("");
+                    }}
+                  >
+                    Create an admin account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>Already have an account?</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => {
+                      setMode("login");
+                      setError("");
+                    }}
+                  >
+                    Login instead
+                  </button>
+                </>
+              )}
+            </div>
           </form>
 
           <button
-            type="button"
             className="secondary-btn full-width"
             onClick={() => navigate("/login")}
           >

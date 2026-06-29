@@ -127,7 +127,7 @@ async function writeCollection(storageKey, filePath, data) {
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
 }
 
-app.get("/api/health", (_req, res) => {
+app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "Scoopers Rentals API",
@@ -135,7 +135,7 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.get("/api/payments/config", (_req, res) => {
+app.get("/payments/config", (_req, res) => {
   res.json({
     provider: "paystack",
     enabled: Boolean(process.env.PAYSTACK_SECRET_KEY),
@@ -145,12 +145,12 @@ app.get("/api/payments/config", (_req, res) => {
   });
 });
 
-app.get("/api/bookings", async (_req, res) => {
+app.get("/bookings", async (_req, res) => {
   const bookings = await readCollection(BOOKINGS_KEY, bookingsFile);
   res.json(bookings);
 });
 
-app.post("/api/bookings", async (req, res) => {
+app.post("/bookings", async (req, res) => {
   const {
     customerEmail,
     fullName,
@@ -191,7 +191,7 @@ app.post("/api/bookings", async (req, res) => {
   res.status(201).json(booking);
 });
 
-app.patch("/api/bookings/:id/payment-status", async (req, res) => {
+app.patch("/bookings/:id/payment-status", async (req, res) => {
   const { id } = req.params;
   const { paymentStatus } = req.body;
   const bookings = await readCollection(BOOKINGS_KEY, bookingsFile);
@@ -228,7 +228,7 @@ app.patch("/api/bookings/:id/payment-status", async (req, res) => {
   res.json(booking);
 });
 
-app.patch("/api/bookings/:id/status", async (req, res) => {
+app.patch("/bookings/:id/status", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const allowedStatuses = ["upcoming", "active", "completed"];
@@ -270,7 +270,7 @@ app.patch("/api/bookings/:id/status", async (req, res) => {
   res.json(booking);
 });
 
-app.post("/api/admin-staff/register", async (req, res) => {
+app.post("/admin-staff/register", async (req, res) => {
   const { name, email, password, passcode } = req.body;
 
   if (!name || !email || !password || !passcode) {
@@ -312,7 +312,7 @@ app.post("/api/admin-staff/register", async (req, res) => {
   });
 });
 
-app.post("/api/admin-staff/login", async (req, res) => {
+app.post("/admin-staff/login", async (req, res) => {
   const { email, password, passcode } = req.body;
 
   if (!email || !password || !passcode) {
@@ -343,12 +343,12 @@ app.post("/api/admin-staff/login", async (req, res) => {
   });
 });
 
-app.get("/api/messages", async (_req, res) => {
+app.get("/messages", async (_req, res) => {
   const messages = await readCollection(MESSAGES_KEY, messagesFile);
   res.json(messages);
 });
 
-app.post("/api/messages", async (req, res) => {
+app.post("/messages", async (req, res) => {
   const { name, email, message, from, type } = req.body;
 
   if (!message) {
@@ -371,7 +371,7 @@ app.post("/api/messages", async (req, res) => {
   res.status(201).json(payload);
 });
 
-app.post("/api/payments/paystack/initialize", async (req, res) => {
+app.post("/payments/paystack/initialize", async (req, res) => {
   const { email, amount, bookingId } = req.body;
 
   if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -414,7 +414,7 @@ app.post("/api/payments/paystack/initialize", async (req, res) => {
   }
 });
 
-app.get("/api/payments/paystack/verify/:reference", async (req, res) => {
+app.get("/payments/paystack/verify/:reference", async (req, res) => {
   const { reference } = req.params;
 
   if (!process.env.PAYSTACK_SECRET_KEY) {
